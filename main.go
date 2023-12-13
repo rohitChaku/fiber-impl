@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"log"
 	"slices"
 	"strings"
@@ -76,6 +77,11 @@ type User struct {
 	Items []string `form:"items,default=initiated" default:"initiated" validate:"omitempty,dive,oneofarray=initiated ringing answered completed" json:"items"`
 }
 
+// MyRequest is a struct representing the incoming request body
+type MyRequest struct {
+	MyField *bool `json:"myField" form:"myField"`
+}
+
 func removeJSONExtension() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		// Get the current path
@@ -134,6 +140,7 @@ func Serve() {
 		log.Println("Middleware 1: Before request")
 		c.Next()
 		log.Println("Middleware 1: After request")
+		fmt.Printf("ROUTE NAME: %+v\n", c.Route().Name)
 		return nil
 	})
 
@@ -174,7 +181,7 @@ func Serve() {
 			"message": "User created successfully",
 			"user":    user,
 		})
-	})
+	}).Name("Random Name")
 
 	// Endpoint to handle POST requests with JSON input
 	app.Post("/api/user/:id", func(c *fiber.Ctx) error {
@@ -250,6 +257,25 @@ func Serve() {
 			"message": "User created successfully",
 			"user":    user,
 		})
+	})
+
+	app.Post("/example", func(c *fiber.Ctx) error {
+		// Parse the request body into a MyRequest struct
+		var req MyRequest
+		if err := c.BodyParser(&req); err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": err.Error(),
+			})
+		}
+
+		// Check if MyField is present and explicitly set to true or false
+		if req.MyField != nil {
+			fmt.Printf("myField is explicitly set to: %v\n", *req.MyField)
+		} else {
+			fmt.Println("myField is not present in the request body\n")
+		}
+
+		return c.SendString("Request processed")
 	})
 
 	// Start the Fiber application on port 3000
